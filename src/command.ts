@@ -1,6 +1,7 @@
 import { Notice } from "obsidian";
 import GithubService from "src/github";
 import type DockerToObsiPlugin from "src/main";
+import { StackSelectionModal } from "src/modal";
 import ObsidianService from "src/obsidian";
 
 export default class CommandManager {
@@ -40,6 +41,75 @@ export default class CommandManager {
 			}
 		} catch (err) {
 			new Notice("Failed to fetch file content from GitHub.");
+		} finally {
+			statusBarItemEl.remove();
+		}
+	}
+
+	async createMissingDockerNotesCommand() {
+		const statusBarItemEl = this.plugin.addStatusBarItem();
+		statusBarItemEl.setText("Fetching docker stacks...");
+
+		try {
+			const stacks = await this.githubService.fetchAllComposeStackFiles();
+			if (stacks.length === 0) {
+				new Notice("No Docker stacks found.");
+				return;
+			}
+
+			statusBarItemEl.setText("Finding missing Docker stack notes...");
+			const missingStacks =
+				await this.obsidianService.findMissingStacks(stacks);
+
+			if (missingStacks.length === 0) {
+				new Notice("All Docker stacks already have corresponding notes.");
+				return;
+			}
+
+			statusBarItemEl.remove();
+
+			const modal = new StackSelectionModal(
+				this.plugin.app,
+				this.plugin,
+				this.obsidianService,
+				missingStacks,
+				async (selectedStacks) => {
+					if (selectedStacks.length === 0) {
+						new Notice("No stacks selected for creation.");
+						return;
+					}
+
+					const creationStatusBar = this.plugin.addStatusBarItem();
+					creationStatusBar.setText("Creating notes from template...");
+
+					try {
+						const createdCount =
+							await this.obsidianService.createNotesFromTemplate(
+								selectedStacks,
+							);
+
+						if (createdCount > 0) {
+							new Notice(
+								`Successfully created ${createdCount} new note${createdCount === 1 ? "" : "s"} for Docker stacks.`,
+							);
+						} else {
+							new Notice("Failed to create notes. Check console for errors.");
+						}
+					} catch (err) {
+						console.error("Error creating Docker notes:", err);
+						new Notice(
+							"Failed to create Docker notes. Check console for details.",
+						);
+					} finally {
+						creationStatusBar.remove();
+					}
+				},
+			);
+
+			modal.open();
+		} catch (err) {
+			console.error("Error creating Docker notes:", err);
+			new Notice("Failed to create Docker notes. Check console for details.");
 		} finally {
 			statusBarItemEl.remove();
 		}

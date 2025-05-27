@@ -12,3 +12,9 @@ writeFileSync("manifest.json", JSON.stringify(manifest, null, "\t"));
 const versions = JSON.parse(readFileSync("versions.json", "utf8"));
 versions[targetVersion] = minAppVersion;
 writeFileSync("versions.json", JSON.stringify(versions, null, "\t"));
+
+console.log(`
+// Run the following commands to commit the changes and create a new tag:
+git tag -a ${targetVersion} -m "${targetVersion}"
+git push origin ${targetVersion}
+`);

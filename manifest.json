@@ -1,7 +1,7 @@
 {
 	"id": "docker-to-obsi",
 	"name": "Docker to Obsidian",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"minAppVersion": "0.15.0",
 	"description": "Fetch docker compose.yaml from a repository and save them in Obsidian files.",
 	"author": "Raphaël Catarino",
